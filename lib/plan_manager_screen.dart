@@ -9,7 +9,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Plan Manager',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
       home: PlanManagerScreen(),
     );
   }
@@ -22,6 +25,7 @@ class PlanManagerScreen extends StatefulWidget {
 
 class _PlanManagerScreenState extends State<PlanManagerScreen> {
   final List<Map<String, dynamic>> _plans = [];
+  String _searchQuery = '';
 
   // Add Plan
   void _addPlan(String name, String description, DateTime date, String priority) {
@@ -31,7 +35,7 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
         'description': description,
         'date': date,
         'completed': false,
-        'priority': priority
+        'priority': priority,
       });
 
       // Sort Plans by Priority
@@ -79,33 +83,72 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
     });
   }
 
+  // Color-coding for priority
+  Color _getPriorityColor(String priority) {
+    switch (priority) {
+      case 'High':
+        return Colors.red;
+      case 'Medium':
+        return Colors.orange;
+      case 'Low':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filteredPlans = _plans
+        .where((plan) => plan['name'].toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Plan Manager')),
-      body: ListView.builder(
-        itemCount: _plans.length,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onLongPress: () => _showEditPlanModal(context, index),
-            onDoubleTap: () => _deletePlan(index),
-            child: Dismissible(
-              key: ValueKey(_plans[index]['name']),
-              direction: DismissDirection.endToStart,
-              onDismissed: (_) => _toggleComplete(index),
-              background: Container(
-                color: Colors.green,
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 20),
-                child: const Icon(Icons.check, color: Colors.white),
-              ),
-              child: ListTile(
-                title: Text('${_plans[index]['name']} [${_plans[index]['priority']}]'),
-                subtitle: Text(_plans[index]['description']),
-                trailing: Icon(
-                  _plans[index]['completed'] ? Icons.check_circle : Icons.radio_button_unchecked,
-                  color: _plans[index]['completed'] ? Colors.green : Colors.grey,
+      appBar: AppBar(
+        title: const Text('Plan Manager'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: TextField(
+              onChanged: (query) => setState(() => _searchQuery = query),
+              decoration: InputDecoration(
+                hintText: "Search Plans...",
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30.0),
                 ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: ListView.builder(
+        itemCount: filteredPlans.length,
+        itemBuilder: (context, index) {
+          return Card(
+            color: _getPriorityColor(filteredPlans[index]['priority']).withOpacity(0.15),
+            elevation: 3,
+            margin: const EdgeInsets.all(8.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            child: ListTile(
+              onLongPress: () => _showEditPlanModal(context, index),
+              onDoubleTap: () => _deletePlan(index),
+              title: Text(
+                '${filteredPlans[index]['name']} [${filteredPlans[index]['priority']}]',
+                style: TextStyle(
+                  color: _getPriorityColor(filteredPlans[index]['priority']),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                filteredPlans[index]['description'] + '\nDate: ${filteredPlans[index]['date'].toString().split(' ')[0]}',
+              ),
+              trailing: Icon(
+                filteredPlans[index]['completed'] ? Icons.check_circle : Icons.radio_button_unchecked,
+                color: filteredPlans[index]['completed'] ? Colors.green : Colors.grey,
               ),
             ),
           );
@@ -165,60 +208,6 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
                   Navigator.of(context).pop();
                 },
                 child: const Text('Add Plan'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // Modal for Editing Plan
-  void _showEditPlanModal(BuildContext context, int index) {
-    final _nameController = TextEditingController(text: _plans[index]['name']);
-    final _descriptionController = TextEditingController(text: _plans[index]['description']);
-    String _selectedPriority = _plans[index]['priority'];
-
-    showModalBottomSheet(
-      context: context,
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Edit Plan Name'),
-              ),
-              TextField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Edit Description'),
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: _selectedPriority,
-                items: ['High', 'Medium', 'Low'].map((priority) {
-                  return DropdownMenuItem(
-                    value: priority,
-                    child: Text(priority),
-                  );
-                }).toList(),
-                onChanged: (value) => _selectedPriority = value ?? 'Medium',
-                decoration: const InputDecoration(labelText: 'Priority'),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () {
-                  _updatePlan(
-                    index,
-                    _nameController.text,
-                    _descriptionController.text,
-                    _selectedPriority,
-                  );
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Update Plan'),
               ),
             ],
           ),
