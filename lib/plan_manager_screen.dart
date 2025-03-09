@@ -137,29 +137,31 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
       body: ListView.builder(
         itemCount: filteredPlans.length,
         itemBuilder: (context, index) {
-          return Card(
-            color: _getPriorityColor(filteredPlans[index]['priority']).withOpacity(0.15),
-            elevation: 3,
-            margin: const EdgeInsets.all(8.0),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            child: ListTile(
-              onLongPress: () => _showEditPlanModal(context, index),
-              onDoubleTap: () => _deletePlan(index),
-              title: Text(
-                '${filteredPlans[index]['name']} [${filteredPlans[index]['priority']}]',
-                style: TextStyle(
-                  color: _getPriorityColor(filteredPlans[index]['priority']),
-                  fontWeight: FontWeight.bold,
+          return GestureDetector(
+            onDoubleTap: () => _deletePlan(index), // Corrected onDoubleTap
+            child: Card(
+              color: _getPriorityColor(filteredPlans[index]['priority']).withOpacity(0.15),
+              elevation: 3,
+              margin: const EdgeInsets.all(8.0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: ListTile(
+                onLongPress: () => _showEditPlanModal(context, index),
+                title: Text(
+                  '${filteredPlans[index]['name']} [${filteredPlans[index]['priority']}]',
+                  style: TextStyle(
+                    color: _getPriorityColor(filteredPlans[index]['priority']),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              subtitle: Text(
-                filteredPlans[index]['description'] + '\nDate: ${filteredPlans[index]['date'].toString().split(' ')[0]}',
-              ),
-              trailing: Icon(
-                filteredPlans[index]['completed'] ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: filteredPlans[index]['completed'] ? Colors.green : Colors.grey,
+                subtitle: Text(
+                  filteredPlans[index]['description'] + '\nDate: ${filteredPlans[index]['date'].toString().split(' ')[0]}',
+                ),
+                trailing: Icon(
+                  filteredPlans[index]['completed'] ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: filteredPlans[index]['completed'] ? Colors.green : Colors.grey,
+                ),
               ),
             ),
           );
@@ -219,6 +221,60 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
                   Navigator.of(context).pop();
                 },
                 child: const Text('Add Plan'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Modal for Editing Plan
+  void _showEditPlanModal(BuildContext context, int index) {
+    final _nameController = TextEditingController(text: _plans[index]['name']);
+    final _descriptionController = TextEditingController(text: _plans[index]['description']);
+    String _selectedPriority = _plans[index]['priority'];
+
+    showModalBottomSheet(
+      context: context,
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Edit Plan Name'),
+              ),
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(labelText: 'Edit Description'),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: _selectedPriority,
+                items: ['High', 'Medium', 'Low'].map((priority) {
+                  return DropdownMenuItem(
+                    value: priority,
+                    child: Text(priority),
+                  );
+                }).toList(),
+                onChanged: (value) => _selectedPriority = value ?? 'Medium',
+                decoration: const InputDecoration(labelText: 'Priority'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  _updatePlan(
+                    index,
+                    _nameController.text,
+                    _descriptionController.text,
+                    _selectedPriority,
+                  );
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Update Plan'),
               ),
             ],
           ),
