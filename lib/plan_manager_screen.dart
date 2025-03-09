@@ -24,22 +24,44 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
   final List<Map<String, dynamic>> _plans = [];
 
   // Add Plan
-  void _addPlan(String name, String description, DateTime date) {
+  void _addPlan(String name, String description, DateTime date, String priority) {
     setState(() {
       _plans.add({
         'name': name,
         'description': description,
         'date': date,
         'completed': false,
+        'priority': priority
       });
+
+      // Sort Plans by Priority
+      _plans.sort((a, b) => _priorityOrder(a['priority']).compareTo(_priorityOrder(b['priority'])));
     });
   }
 
+  // Priority Order Logic
+  int _priorityOrder(String priority) {
+    switch (priority) {
+      case 'High':
+        return 1;
+      case 'Medium':
+        return 2;
+      case 'Low':
+        return 3;
+      default:
+        return 4;
+    }
+  }
+
   // Update Plan
-  void _updatePlan(int index, String newName, String newDescription) {
+  void _updatePlan(int index, String newName, String newDescription, String priority) {
     setState(() {
       _plans[index]['name'] = newName;
       _plans[index]['description'] = newDescription;
+      _plans[index]['priority'] = priority;
+
+      // Sort Plans by Priority
+      _plans.sort((a, b) => _priorityOrder(a['priority']).compareTo(_priorityOrder(b['priority'])));
     });
   }
 
@@ -65,12 +87,12 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
         itemCount: _plans.length,
         itemBuilder: (context, index) {
           return GestureDetector(
-            onLongPress: () => _showEditPlanModal(context, index), // Long press to edit
-            onDoubleTap: () => _deletePlan(index), // Double tap to delete
+            onLongPress: () => _showEditPlanModal(context, index),
+            onDoubleTap: () => _deletePlan(index),
             child: Dismissible(
               key: ValueKey(_plans[index]['name']),
               direction: DismissDirection.endToStart,
-              onDismissed: (_) => _toggleComplete(index), // Swipe to mark complete
+              onDismissed: (_) => _toggleComplete(index),
               background: Container(
                 color: Colors.green,
                 alignment: Alignment.centerRight,
@@ -78,7 +100,7 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
                 child: const Icon(Icons.check, color: Colors.white),
               ),
               child: ListTile(
-                title: Text(_plans[index]['name']),
+                title: Text('${_plans[index]['name']} [${_plans[index]['priority']}]'),
                 subtitle: Text(_plans[index]['description']),
                 trailing: Icon(
                   _plans[index]['completed'] ? Icons.check_circle : Icons.radio_button_unchecked,
@@ -101,6 +123,7 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
     final _nameController = TextEditingController();
     final _descriptionController = TextEditingController();
     DateTime _selectedDate = DateTime.now();
+    String _selectedPriority = 'Medium';
 
     showModalBottomSheet(
       context: context,
@@ -119,12 +142,25 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
                 decoration: const InputDecoration(labelText: 'Description'),
               ),
               const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: _selectedPriority,
+                items: ['High', 'Medium', 'Low'].map((priority) {
+                  return DropdownMenuItem(
+                    value: priority,
+                    child: Text(priority),
+                  );
+                }).toList(),
+                onChanged: (value) => _selectedPriority = value ?? 'Medium',
+                decoration: const InputDecoration(labelText: 'Priority'),
+              ),
+              const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () {
                   _addPlan(
                     _nameController.text,
                     _descriptionController.text,
                     _selectedDate,
+                    _selectedPriority,
                   );
                   Navigator.of(context).pop();
                 },
@@ -141,6 +177,7 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
   void _showEditPlanModal(BuildContext context, int index) {
     final _nameController = TextEditingController(text: _plans[index]['name']);
     final _descriptionController = TextEditingController(text: _plans[index]['description']);
+    String _selectedPriority = _plans[index]['priority'];
 
     showModalBottomSheet(
       context: context,
@@ -159,12 +196,25 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
                 decoration: const InputDecoration(labelText: 'Edit Description'),
               ),
               const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: _selectedPriority,
+                items: ['High', 'Medium', 'Low'].map((priority) {
+                  return DropdownMenuItem(
+                    value: priority,
+                    child: Text(priority),
+                  );
+                }).toList(),
+                onChanged: (value) => _selectedPriority = value ?? 'Medium',
+                decoration: const InputDecoration(labelText: 'Priority'),
+              ),
+              const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () {
                   _updatePlan(
                     index,
                     _nameController.text,
                     _descriptionController.text,
+                    _selectedPriority,
                   );
                   Navigator.of(context).pop();
                 },
