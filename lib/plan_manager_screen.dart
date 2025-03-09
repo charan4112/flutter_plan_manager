@@ -41,7 +41,7 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
     });
   }
 
-  // Priority Sorting Logic
+  // Sort Plans by Priority
   void _sortPlans() {
     _plans.sort((a, b) => _priorityOrder(a['priority']).compareTo(_priorityOrder(b['priority'])));
   }
@@ -94,7 +94,7 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
     });
   }
 
-  // Color-coding for Priority
+  // Priority Colors
   Color _getPriorityColor(String priority) {
     switch (priority) {
       case 'High':
