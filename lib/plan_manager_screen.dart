@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -9,10 +10,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Plan Manager',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: PlanManagerScreen(),
     );
   }
@@ -26,6 +24,7 @@ class PlanManagerScreen extends StatefulWidget {
 class _PlanManagerScreenState extends State<PlanManagerScreen> {
   final List<Map<String, dynamic>> _plans = [];
   String _searchQuery = '';
+  Timer? _debounce;
 
   // Add Plan
   void _addPlan(String name, String description, DateTime date, String priority) {
@@ -38,12 +37,15 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
         'priority': priority,
       });
 
-      // Sort Plans by Priority
-      _plans.sort((a, b) => _priorityOrder(a['priority']).compareTo(_priorityOrder(b['priority'])));
+      _sortPlans();
     });
   }
 
-  // Priority Order Logic
+  // Priority Sorting Logic
+  void _sortPlans() {
+    _plans.sort((a, b) => _priorityOrder(a['priority']).compareTo(_priorityOrder(b['priority'])));
+  }
+
   int _priorityOrder(String priority) {
     switch (priority) {
       case 'High':
@@ -64,8 +66,7 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
       _plans[index]['description'] = newDescription;
       _plans[index]['priority'] = priority;
 
-      // Sort Plans by Priority
-      _plans.sort((a, b) => _priorityOrder(a['priority']).compareTo(_priorityOrder(b['priority'])));
+      _sortPlans();
     });
   }
 
@@ -83,7 +84,17 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
     });
   }
 
-  // Color-coding for priority
+  // Efficient Search with Debounce
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      setState(() {
+        _searchQuery = query;
+      });
+    });
+  }
+
+  // Color-coding for Priority
   Color _getPriorityColor(String priority) {
     switch (priority) {
       case 'High':
@@ -111,7 +122,7 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: TextField(
-              onChanged: (query) => setState(() => _searchQuery = query),
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: "Search Plans...",
                 prefixIcon: const Icon(Icons.search),
